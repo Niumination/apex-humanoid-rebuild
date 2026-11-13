@@ -176,6 +176,8 @@ export interface FrameState {
   images: PlateImages
   veins?: CanvasImageSource | null
   rings?: CanvasImageSource | null
+  /** F-164b: sumber mask siluet (art mentah), bukan kanvas urat yang lebih redup */
+  maskSrc?: CanvasImageSource & { width: number; height: number }
 }
 
 /**
@@ -189,8 +191,10 @@ const maskBuf: { c: HTMLCanvasElement | null; key: string } = { c: null, key: ''
 function siluetMask(img: CanvasImageSource & { width: number; height: number }, w: number, h: number) {
   const key = `${w}x${h}`
   if (maskBuf.c && maskBuf.key === key) return maskBuf.c
-  const sw = Math.max(2, Math.round(w / 8))
-  const sh = Math.max(2, Math.round(h / 8))
+  // F-163b: mask dibangun di resolusi 1/2 (bukan 1/8). Pada 1/8, goresan tipis rata-rata
+  // turun di bawah ambang → siluet berlubang (alfa 255 hanya 7,6 %, live 20,8 %).
+  const sw = Math.max(2, Math.round(w / 2))
+  const sh = Math.max(2, Math.round(h / 2))
   const small = document.createElement('canvas')
   small.width = sw
   small.height = sh
@@ -200,7 +204,12 @@ function siluetMask(img: CanvasImageSource & { width: number; height: number }, 
   const d = data.data
   for (let i = 0; i < d.length; i += 4) {
     const l = Math.max(d[i], d[i + 1], d[i + 2]) / 255
-    const a = Math.max(0, Math.min(1, (l - 0.06) / 0.22))
+    // F-163 (P11) — TERUKUR: siluet plate live jauh lebih pekat daripada milik kita.
+    // Tangkapan alfa (omitBackground, kanvas plate saja, 390x844):
+    //   live: alfa 0 pada 71,9 % · alfa 255 pada 20,8 % · rerata 57,6
+    //   kita (ramp 0,06–0,22): alfa 0 79,6 % · 255 3,6 % · rerata 24,4  ⇒ terlalu tipis
+    // Ramp dipertajam supaya bagian dalam tubuh benar-benar opak seperti live.
+    const a = Math.max(0, Math.min(1, (l - 0.06) / 0.04))
     d[i] = 255
     d[i + 1] = 255
     d[i + 2] = 255
@@ -219,8 +228,17 @@ function siluetMask(img: CanvasImageSource & { width: number; height: number }, 
 }
 
 /** ht() */
+/**
+ * F-162 (P11) — TERUKUR: plate live praktis HITAM di semua state.
+ * Lapisan plate live 390x390 diukur sendirian (canvas[1] saja, 5 bingkai median):
+ *   idle 1,78 · thinking 1,98 · speaking 1,97  (piksel >100: 925 / 978 / 978)
+ * sedangkan plate kita menggambar ulang figur: idle 7,71 · thinking 9,04 · speaking 9,44
+ * (piksel >100: 7 021 / 10 163 / 11 300). Artinya di live plate hanya **mask oklusi**
+ * (siluet gelap yang menahan butiran latar), bukan gambar; figur & seluruh efek state
+ * datang dari kanvas GPU. Jadi bawaan kini siluet saja; `?pl=0` mengembalikan perilaku lama.
+ */
 export const siluetSaja =
-  typeof window !== 'undefined' && !!new URLSearchParams(window.location.search).get('pl')
+  typeof window === 'undefined' || new URLSearchParams(window.location.search).get('pl') !== '0'
 
 export function drawState(ctx: CanvasRenderingContext2D, w: number, h: number, f: FrameState) {
   const { state, energy, strongMix, t, reduced, images, veins, rings } = f
@@ -264,7 +282,7 @@ export function drawState(ctx: CanvasRenderingContext2D, w: number, h: number, f
   // F-155: potong latar — hanya siluet yang opak, sama seperti plate live.
   ctx.globalAlpha = 1
   ctx.globalCompositeOperation = 'destination-in'
-  ctx.drawImage(siluetMask(images.idle, w, h), 0, 0, w, h)
+  ctx.drawImage(siluetMask((f.maskSrc || images.idle) as any, w, h), 0, 0, w, h)
   ctx.globalCompositeOperation = 'source-over'
 
   // F-157 (?pl=1): di live kanvas plate 900x900 praktis HITAM — alfa 45 % opak tetapi luminansi

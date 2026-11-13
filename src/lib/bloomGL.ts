@@ -435,7 +435,10 @@ export class BloomGL {
     // membuat intensitas/threshold tetap verbatim dari bundle.
     gl.uniform1f(
       gl.getUniformLocation(this.pComp, 'uIntensity'),
-      p.intensity / Math.max(1, this.levels.length)
+      // F-166 (P11): intensityMul (knob bpi) dulu HANYA dipakai di mode 1, sehingga semua uji
+      // bpi di mode 0 tidak berpengaruh apa pun (terukur: rasio halo identik 0,85 pada bpi
+      // 0,8/1/1,6/2,4). Kini berlaku di kedua mode.
+      (p.intensity * this.intensityMul) / Math.max(1, this.levels.length)
     )
     gl.drawArrays(gl.TRIANGLES, 0, 3)
     gl.activeTexture(gl.TEXTURE0)

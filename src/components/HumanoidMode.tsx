@@ -3,6 +3,16 @@ import { loadAssets, type AssetBag } from '../lib/assets'
 
 /** kanvas komposisi on-screen: 900x900 device px (terukur dari live) */
 const COMPOSE = 900
+/**
+ * F-164 (P11) — TERUKUR: kanvas plate live berukuran **CSS×dpr** (390×390 pada viewport 390,
+ * 900×900 pada 1440), sedangkan kita selalu 900. Pada 390, kanvas 900 yang diperkecil browser
+ * ke 390 meratakan alfa (alfa 255 hanya 8,2 % vs live 20,8 %; rerata 31,9 vs 57,6) — siluet
+ * kita jadi berlubang/halus. Kini backing plate mengikuti ukuran tampil.
+ */
+const backingSize = (cssPx: number) => {
+  const dpr = Math.min(typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1, 1.75)
+  return Math.max(2, Math.round((cssPx || COMPOSE) * dpr))
+}
 import { buildPlate } from '../lib/plate'
 import { buildAssembly, renderBirthFrame, TIMELINE, type Assembly } from '../lib/birth'
 import { buildVeinCanvas } from '../lib/veins'
@@ -31,6 +41,13 @@ const YA = '#19ddff' // warna aksen APEX di bundle (const no="#19ddff")
  * BELUM ada: partikel/boil/hatch + shockwave (langkah 3), audio (4), blend state (5),
  * hand tracking (6), bloom (8).
  */
+const newCanvas = (n: number) => {
+  const c = document.createElement('canvas')
+  c.width = n
+  c.height = n
+  return c
+}
+
 export function HumanoidMode({ state, onExit }: { state: string; onExit: () => void }) {
   const [bag, setBag] = useState<AssetBag | null>(null)
   const plateRef = useRef<HTMLCanvasElement | null>(null)
@@ -74,12 +91,16 @@ export function HumanoidMode({ state, onExit }: { state: string; onExit: () => v
     if (!bag || !plateRef.current) return
     const cv = plateRef.current
     const ge = cv.getContext('2d')!
+    // F-164: ukuran backing mengikuti ukuran tampil (bukan 900 tetap)
+    let C = backingSize(cv.clientWidth)
+    cv.width = C
+    cv.height = C
     // bundle: r.current.idle DIGANTI dengan bU(idle) → dasar semua plate & lapisan steady
     const idleVein = buildVeinCanvas(bag.idle)
     const plateIdle = buildPlate(bag, 'idle', idleVein)
     const scratch = document.createElement('canvas')
-    scratch.width = COMPOSE
-    scratch.height = COMPOSE
+    scratch.width = C
+    scratch.height = C
     // bundle: assembly: CU(bU(idle)) — bU meredupkan haze, mengubah set sampel >95
     assemblyRef.current = buildAssembly(idleVein)
     // bundle: edgeParticles: PU(AU(idle)), veins: RU(idle), listeningRings dari webp listening
@@ -92,13 +113,24 @@ export function HumanoidMode({ state, onExit }: { state: string; onExit: () => v
     // idle = bU(idle); thinking/speaking/strong tetap webp mentah (bundle hanya mengganti .idle)
     const images = { idle: idleVein, thinking: bag.thinking, speaking: bag.speaking, strong: bag.strong }
 
-    const mk = () => {
-      const c = document.createElement('canvas')
-      c.width = COMPOSE
-      c.height = COMPOSE
-      return c
+    let prevCv = newCanvas(C)
+    let nextCv = newCanvas(C)
+    let glowCv = newCanvas(C)
+    let maskCv = newCanvas(C)
+    const fitBuffers = (n: number) => {
+      if (prevCv.width === n) return
+      prevCv = newCanvas(n); nextCv = newCanvas(n); glowCv = newCanvas(n); maskCv = newCanvas(n)
+      scratch.width = n; scratch.height = n
     }
-    const prevCv = mk(), nextCv = mk(), glowCv = mk(), maskCv = mk()
+    const syncSize = () => {
+      const n = backingSize(cv.clientWidth)
+      if (n === C) return
+      C = n
+      cv.width = n
+      cv.height = n
+      fitBuffers(n)
+    }
+    window.addEventListener('resize', syncSize)
 
     let aliveToBlob = true
     const reduce = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
@@ -165,21 +197,21 @@ export function HumanoidMode({ state, onExit }: { state: string; onExit: () => v
       if (target !== fadeFrom) {
         // snapshot kanvas sekarang → dipakai sebagai lapisan "sebelum"
         const pc = prevCv.getContext('2d')!
-        pc.clearRect(0, 0, COMPOSE, COMPOSE)
+        pc.clearRect(0, 0, C, C)
         pc.drawImage(cv, 0, 0)
         fadeFrom = target
         fade = { to: target, p: 0, dur: reduce ? 0.001 : transitionDuration(target) }
       }
       stepEnergy(fade.to, dt)
-      const frame = { state: fade.to, energy, strongMix, t, reduced: reduce, images, veins, rings }
-      ge.clearRect(0, 0, COMPOSE, COMPOSE)
-      if (fade.p < 1) fade = drawTransition(ge, COMPOSE, COMPOSE, fade, dt, frame, prevCv, nextCv, glowCv, maskCv)
-      else drawState(ge, COMPOSE, COMPOSE, frame)
+      const frame = { state: fade.to, energy, strongMix, t, reduced: reduce, images, veins, rings, maskSrc: bag.idle }
+      ge.clearRect(0, 0, C, C)
+      if (fade.p < 1) fade = drawTransition(ge, C, C, fade, dt, frame, prevCv, nextCv, glowCv, maskCv)
+      else drawState(ge, C, C, frame)
       // HARNESS SEAM: status crossfade untuk gerbang D (tidak memengaruhi rendering)
       ;(window as any).__HUM_FADE = { p: fade.p, dur: fade.dur, to: fade.to, dt }
       updateHorn(TIMELINE.total)
       // bundle: at(_e, Te, Ye, Ge, pt, 1) — intensitas 1 di steady-state; `if (He) return`
-      if (!reduce) drawEdgeParticles(ge, COMPOSE, COMPOSE, dt, fade.to, energy, 1, edgeParticles)
+      if (!reduce) drawEdgeParticles(ge, C, C, dt, fade.to, energy, 1, edgeParticles)
     }
 
     if (reduce || skipFlag) {
@@ -220,9 +252,9 @@ export function HumanoidMode({ state, onExit }: { state: string; onExit: () => v
         return
       }
       updateHorn(t)
-      ge.clearRect(0, 0, COMPOSE, COMPOSE)
+      ge.clearRect(0, 0, C, C)
       const s = renderBirthFrame(
-        ge, COMPOSE, COMPOSE, t, assemblyRef.current!, plateIdle, scratch, dt, edgeParticles,
+        ge, C, C, t, assemblyRef.current!, plateIdle, scratch, dt, edgeParticles,
         nowMs / 1000
       )
       progressRef.current = s
@@ -232,6 +264,7 @@ export function HumanoidMode({ state, onExit }: { state: string; onExit: () => v
     frame()
     return () => {
       aliveToBlob = false
+      window.removeEventListener('resize', syncSize)
       if (raf) cancelAnimationFrame(raf)
     }
   }, [bag, replay])
