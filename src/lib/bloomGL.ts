@@ -247,7 +247,16 @@ export class BloomGL {
   private w = 0
   private h = 0
   levels5 = 6
-  /** F-151: 0 = rantai lama (9 tap + aditif + 1/levels) · 1 = rantai live (13 tap + up-mix + SCREEN) */
+  /**
+   * F-151/F-159: 0 = rantai lama (9 tap + aditif + 1/levels) · 1 = rantai live (13 tap + up-mix
+   * + SCREEN, 8 level) — VERBATIM dari bundle APEX.
+   *
+   * F-159 (P11) — **bawaan tetap 0**. Diuji sebagai bawaan, hasil UKUR gabungan bertentangan
+   * menurut lapisan: pada lapisan figur saja rantai live lebih dekat (1440 4,29 → 4,14 ·
+   * 390 4,42 → 3,53), tetapi pada GAMBAR PENUH (yang dinilai gerbang) ia lebih buruk di 1440
+   * (4,51 → 5,75) dan hanya lebih baik di 390 (5,51 → 4,93). Karena kriteria P11 adalah paritas
+   * gambar penuh, rantai live TIDAK dijadikan bawaan — tetap tersedia lewat `?bpm=1`.
+   */
   readonly mode = qn('bpm', 0) > 0.5 ? 1 : 0
   readonly levelsN = Math.max(2, Math.round(qn('bpl', qn('bpm', 0) > 0.5 ? 8 : 6)))
   readonly upRadius = qn('bpr', 0.42)
@@ -272,7 +281,13 @@ export class BloomGL {
     // HALF-FLOAT RENDER TARGET (F-46): bundle memakai EffectComposer default HalfFloatType,
     // jadi nilai scene > 1.0 (inti wajah) tetap HDR sampai pass komposit. Dengan RGBA8,
     // semua >1 ter-clamp ke 1.0 → area di atas threshold bloom membengkak → terlalu terang.
-    const hdr = !!(gl.getExtension('EXT_color_buffer_half_float') || gl.getExtension('EXT_color_buffer_float'))
+    // F-160 (P11) — TERUKUR: composer live memakai `frameBufferType` = **UnsignedByteType (1009)**,
+    // yaitu render target **8-bit**, bukan HalfFloat (1016). Kita dulu memilih half-float bila
+    // tersedia, jadi ambang bloom kita bekerja pada nilai >1 yang di live sudah di-clamp.
+    // Terukur pada lapisan figur saja (median 5 bingkai): 1440 MAE 4,29 → **3,95** ·
+    // 390 4,42 → **3,30**. Bawaan kini 8-bit (meniru live); `?bf16=1` mengembalikan half-float.
+    const force16 = new URLSearchParams(window.location.search).get('bf16') === '1'
+    const hdr = force16 && !!(gl.getExtension('EXT_color_buffer_half_float') || gl.getExtension('EXT_color_buffer_float'))
     this.ifmt = hdr ? gl.RGBA16F : gl.RGBA8
     this.fmt = gl.RGBA
     this.type = hdr ? gl.HALF_FLOAT : gl.UNSIGNED_BYTE
