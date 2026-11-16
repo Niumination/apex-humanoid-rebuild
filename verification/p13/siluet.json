@@ -1,0 +1,142 @@
+{
+ "judul": "P13 langkah 1 — siluet asli tiap plate (dasar IoU >= 0,98)",
+ "definisi": "MIRA-idle alfa>32 · APEX gaussian(luma,3)>8 · MIRA-hair gaussian(luma,3)>3 · closing 3 · isi lubang · komponen terbesar · buang < 200 px",
+ "koreksi": "versi pertama (gaussian σ6 > 40) memotong bahu; cakupan 18,6–22,9 % → sekarang 35,7 % (apex-idle). Semua angka IoU paket 5q berbasis mask cacat dan diganti di paket 5r.",
+ "baris": [
+  {
+   "berkas": "apex-idle-v1.webp",
+   "mode": "luma",
+   "ambang": 8,
+   "piksel": 561081,
+   "cakupan_persen": 35.66,
+   "kotak": [
+    17,
+    23,
+    1186,
+    1285
+   ],
+   "luma_rata_dalam_siluet": 46.07,
+   "lubang_diisi": 0
+  },
+  {
+   "berkas": "apex-listening-v1.webp",
+   "mode": "luma",
+   "ambang": 8,
+   "piksel": 936814,
+   "cakupan_persen": 59.59,
+   "kotak": [
+    28,
+    3,
+    1182,
+    1288
+   ],
+   "luma_rata_dalam_siluet": 30.26,
+   "lubang_diisi": 0
+  },
+  {
+   "berkas": "apex-speaking-v1.webp",
+   "mode": "luma",
+   "ambang": 8,
+   "piksel": 542161,
+   "cakupan_persen": 34.49,
+   "kotak": [
+    21,
+    34,
+    1182,
+    1292
+   ],
+   "luma_rata_dalam_siluet": 47.51,
+   "lubang_diisi": 0
+  },
+  {
+   "berkas": "apex-speaking-strong-v1.webp",
+   "mode": "luma",
+   "ambang": 8,
+   "piksel": 605392,
+   "cakupan_persen": 38.5,
+   "kotak": [
+    17,
+    26,
+    1188,
+    1289
+   ],
+   "luma_rata_dalam_siluet": 58.96,
+   "lubang_diisi": 0
+  },
+  {
+   "berkas": "apex-thinking-v1.webp",
+   "mode": "luma",
+   "ambang": 8,
+   "piksel": 515412,
+   "cakupan_persen": 32.76,
+   "kotak": [
+    26,
+    50,
+    1183,
+    1289
+   ],
+   "luma_rata_dalam_siluet": 39.31,
+   "lubang_diisi": 0
+  },
+  {
+   "berkas": "apex-assembly-25-v1.webp",
+   "mode": "luma",
+   "ambang": 8,
+   "piksel": 583896,
+   "cakupan_persen": 37.13,
+   "kotak": [
+    63,
+    3,
+    1193,
+    1250
+   ],
+   "luma_rata_dalam_siluet": 38.52,
+   "lubang_diisi": 0
+  },
+  {
+   "berkas": "apex-assembly-60-v1.webp",
+   "mode": "luma",
+   "ambang": 8,
+   "piksel": 591873,
+   "cakupan_persen": 37.64,
+   "kotak": [
+    71,
+    37,
+    1091,
+    1250
+   ],
+   "luma_rata_dalam_siluet": 43.91,
+   "lubang_diisi": 0
+  },
+  {
+   "berkas": "mira-idle-v1.webp",
+   "mode": "alpha",
+   "ambang": 32,
+   "piksel": 800051,
+   "cakupan_persen": 50.85,
+   "kotak": [
+    22,
+    56,
+    1122,
+    1371
+   ],
+   "luma_rata_dalam_siluet": 62.39,
+   "lubang_diisi": 0
+  },
+  {
+   "berkas": "mira-hair-v1.webp",
+   "mode": "luma",
+   "ambang": 3,
+   "piksel": 464476,
+   "cakupan_persen": 23.58,
+   "kotak": [
+    85,
+    17,
+    1277,
+    1373
+   ],
+   "luma_rata_dalam_siluet": 57.93,
+   "lubang_diisi": 0
+  }
+ ]
+}
