@@ -451,6 +451,9 @@ export function HumanoidMode({ state, onExit }: { state: string; onExit: () => v
           style={{
             position: 'fixed', bottom: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 200,
             display: 'flex', gap: 6, fontFamily: 'var(--font-ui)',
+            // lebarkan maksimal selebar viewport dan boleh membungkus: di layar 390 px bar ini dulu
+            // melebar 462 px sehingga 3 tombol keluar layar (gerbang aset & tata letak S2)
+            maxWidth: 'calc(100vw - 16px)', flexWrap: 'wrap', justifyContent: 'center',
           }}
         >
           {['idle', 'listening', 'thinking', 'speaking'].map((st) => (
