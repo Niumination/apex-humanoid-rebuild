@@ -36,7 +36,7 @@
  * ## v4 (2026-11-18) — jangkar deterministik, bukan "tunggu lalu tembak"
  * Diukur di sandbox ini (SwiftShader ±2,5 fps), setelah 9 s:
  *   MIRA `?t=11.5`  → MAE diri 0,00–3,33 · cakupan antar run Δ ≤ 0,0028
- *   APEX `?auto=1`  → MAE diri 2,81–2,82 · cakupan Δ 0,0000
+ *   APEX `?t=9`     → MAE diri 6,19–6,47 · cakupan Δ 0,0048 (sebelumnya `?auto=1`: Δ 0,0475)
  * Sebelumnya (`?auto=1` untuk MIRA) cakupan berayun 0,042 ↔ 0,507 karena tangkapan jatuh di fase animasi
  * berbeda. `?t=` memaku waktu adegan (parameter yang memang ada di aplikasi), jadi yang diukur adalah
  * keadaan yang sama, bukan detik yang berbeda. Menunggu-stabil dipertahankan hanya sebagai laporan.
@@ -53,7 +53,8 @@ const JSON_OUT = ARG.includes('--json') ? ARG[ARG.indexOf('--json') + 1] : null
 const MIRA = process.env.MIRA || 'http://127.0.0.1:8804/'
 const APEX = process.env.APEX || 'http://127.0.0.1:8805/'
 // JANGKAR: kueri yang memaku waktu adegan. MIRA punya `?t=<detik>` (idle penuh ±11,5 s);
-// APEX memakai `?t=9` (jangkar fase; Δ cakupan antar run 0,0048). Tanpa `?t=` pakai `?auto=1`.
+// APEX memakai `?auto=1` (deterministik setelah 9 s: Δ cakupan antar run 0,0000).
+// P15-B: APEX kini punya `?t=` juga (jangkar waktu), jadi kedua aplikasi dipaku dengan cara yang sama.
 const JANGKAR = {
   MIRA: process.env.MIRA_JANGKAR || '?t=11.5',
   APEX: process.env.APEX_JANGKAR || '?t=9',
