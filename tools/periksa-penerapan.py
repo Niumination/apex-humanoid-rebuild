@@ -25,8 +25,9 @@ import subprocess
 import sys
 import urllib.request
 
-K = '/home/user/Kerja-Arena'
+K = os.environ.get('KERJA_ARENA', os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 P13 = f'{K}/verification/p13'
+SPK = f'{K}/paket/spec'
 URL = {'APEX': 'https://niu-humanoid.vercel.app', 'MIRA': 'https://mira-humanoid-niu.vercel.app'}
 
 
@@ -112,14 +113,14 @@ def main():
     import datetime
     keluar['waktu'] = datetime.datetime.utcnow().isoformat() + 'Z'
 
-    for nama, repo, ws in [('APEX', apex, '/home/user/apex-humanoid-rebuild'),
-                           ('MIRA', mira, '/home/user/mira-humanoid-rebuild')]:
+    for nama, repo, ws in [('APEX', apex, os.environ.get('APEX_WS', '/home/user/apex-humanoid-rebuild')),
+                           ('MIRA', mira, os.environ.get('MIRA_WS', '/home/user/mira-humanoid-rebuild'))]:
         a = {'repo': repo, 'workspace': ws, 'plate': [], 'berkas_paket': [], 'build': {},
              'produksi': {}, 'lulus': 0, 'total': 0}
 
         # ---------- L1: berkas paket yang seharusnya ada di repo
         for k in ['5v', '5w', '5x', '5y']:
-            sp_path = f'{K}/paket/spec/spec-{k}.json'
+            sp_path = f'{SPK}/spec-{k}.json'
             if not os.path.isfile(sp_path):
                 continue
             sp = json.load(open(sp_path))
