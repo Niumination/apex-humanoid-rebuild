@@ -23,7 +23,7 @@ import subprocess
 import sys
 import time
 
-K = '/home/user/Kerja-Arena'
+K = os.environ.get('KERJA_ARENA', os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 RIWAYAT = f'{K}/verification/riwayat'
 VIEWPORT = [('1440x900', 1440, 900), ('414x896', 414, 896), ('390x844', 390, 844)]
 ANGGARAN = {
@@ -115,7 +115,7 @@ def main():
     }
     # provenance plate (jumlah milik kita / asli / tak dikenal)
     try:
-        r = subprocess.run([sys.executable, '/home/user/tools/gate-provenance.py',
+        r = subprocess.run([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'gate-provenance.py'),
                             '--akar', os.path.join(dir_app, 'public', 'humanoid')],
                            capture_output=True, text=True)
         for b in r.stdout.splitlines():
@@ -137,9 +137,9 @@ def main():
     if '--tanpa-ukur' not in sys.argv:
         url = arg('--url')
         if url:
-            r = subprocess.run([sys.executable, '/home/user/tools/ukur-viewport.py', url, app,
+            r = subprocess.run([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ukur-viewport.py'), url, app,
                                 '--json', f'{tujuan}/ukur.json'], capture_output=True, text=True,
-                               env=dict(os.environ, PW=os.environ.get('PW', '/home/user/tools/pw-shim.js')))
+                               env=dict(os.environ, PW=os.environ.get('PW', '/tmp/gates/pw-shim.cjs')))
             print('  ' + (r.stdout.strip() or r.stderr.strip()[-200:] or 'ukur: tanpa keluaran'))
         else:
             print('  (metrik render dilewati: tanpa --url)')
