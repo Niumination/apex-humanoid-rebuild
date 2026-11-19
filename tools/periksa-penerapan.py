@@ -25,7 +25,7 @@ import subprocess
 import sys
 import urllib.request
 
-K = os.environ.get('KERJA_ARENA', '/tmp/5z-repo')
+K = '/home/user/Kerja-Arena'
 P13 = f'{K}/verification/p13'
 URL = {'APEX': 'https://niu-humanoid.vercel.app', 'MIRA': 'https://mira-humanoid-niu.vercel.app'}
 
@@ -79,6 +79,11 @@ def build(dir_repo):
     return js[0], sha(f), os.path.getsize(f)
 
 
+def analisis_bundle(data, penanda):
+    """Cari penanda khas perubahan di dalam bundel produksi (bukti yang dipakai browser)."""
+    return {label: (tanda.encode() in data) for label, tanda in penanda.items()}
+
+
 def aset_produksi(url):
     try:
         html = urllib.request.urlopen(url + '/', timeout=40).read().decode('utf-8', 'replace')
@@ -107,8 +112,8 @@ def main():
     import datetime
     keluar['waktu'] = datetime.datetime.utcnow().isoformat() + 'Z'
 
-    for nama, repo, ws in [('APEX', apex, os.environ.get('WS_APEX', apex)),
-                           ('MIRA', mira, os.environ.get('WS_MIRA', mira))]:
+    for nama, repo, ws in [('APEX', apex, '/home/user/apex-humanoid-rebuild'),
+                           ('MIRA', mira, '/home/user/mira-humanoid-rebuild')]:
         a = {'repo': repo, 'workspace': ws, 'plate': [], 'berkas_paket': [], 'build': {},
              'produksi': {}, 'lulus': 0, 'total': 0}
 
@@ -157,6 +162,14 @@ def main():
                     keluar['pulihkan'].append({'aplikasi': nama, 'berkas': f,
                                                'dari_repo': hp, 'asal': asal})
 
+        # ---------- L2b: PRODUKSI tanpa perlu build (bukti yang benar-benar dijalankan browser)
+        # Penanda khas tiap paket yang menyentuh src/. Kalau produksi memuatnya, paket itu SUDAH aktif
+        # di produksi — walau repo belum (kasus APEX 5z-6c: dikirim 2026-11-18, repo belum).
+        PENANDA = {
+            'judul sr-only (5x)': 'sr-only',
+            'bar debug maxWidth (5x)': 'calc(100vw - 16px)',
+            'reduced-motion (5x)': 'data-reduced-motion',
+        }
         # ---------- L3: build bersih dari tarikan upstream
         nm, hs, ukuran = build(repo)
         hw = None
@@ -170,9 +183,15 @@ def main():
         if hs and hs == hw:
             a['lulus'] += 1
 
-        # ---------- L3b: produksi
+        # ---------- L3b: produksi (nama+hash+penanda), tidak butuh build
         if '--produksi' in sys.argv:
             pn, ph, err = aset_produksi(URL[nama])
+            if pn:
+                try:
+                    data = urllib.request.urlopen(f'{URL[nama]}/assets/{pn}', timeout=60).read()
+                    a['produksi_penanda'] = analisis_bundle(data, PENANDA)
+                except Exception as e:  # noqa: BLE001
+                    a['produksi_penanda'] = {'galat': str(e)}
             a['produksi'] = {'aset': pn, 'sha256': (ph or '')[:16], 'galat': err,
                              'sama_dengan_build': ph == hs}
         keluar['aplikasi'][nama] = a
@@ -201,6 +220,8 @@ def main():
             p = a['produksi']
             print(f'  L3b produksi    : {p["aset"]} {p["sha256"]}' +
                   (' → SAMA dengan build repo' if p['sama_dengan_build'] else ' → BEDA dari build repo'))
+        for label, ada in (a.get('produksi_penanda') or {}).items():
+            print(f'      penanda produksi: {label} = {ada}')
     if keluar['pulihkan']:
         print('\n### Perlu dipulihkan di workspace (workspace ≠ upstream)')
         for p in keluar['pulihkan']:

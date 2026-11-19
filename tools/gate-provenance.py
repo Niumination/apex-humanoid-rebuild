@@ -30,7 +30,7 @@ import json
 import os
 import sys
 
-K = os.environ.get('KERJA_ARENA', '/home/user/Kerja-Arena')
+K = '/home/user/Kerja-Arena'
 P13 = f'{K}/verification/p13'
 AKAR_BAWAAN = os.environ.get('AKAR_ASET', 'public/humanoid')
 MIN_BYTE = 1024
@@ -55,29 +55,7 @@ def tabel_sidik():
         if not os.path.isdir(d):
             continue
         for f in os.listdir(d):
-            if f.endswith('.sha256'):
-                continue
             tabel[sha(os.path.join(d, f))] = {'asal': tag, 'contoh': f}
-    # Cadangan: berkas asli tak ada lagi di workspace; sidiknya tersimpan di provenance.json.
-    # Tanpa ini tabel hanya memuat 'baru' dan gerbang melaporkan FATAL yang menyesatkan.
-    # Cadangan 1: sidik asli penuh (hash 64 hex) — verification/p13/asli-sidik.json
-    for kandidat in (os.path.join(P13, 'asli-sidik.json'),
-                     os.path.join(P13, '..', 'provenance.json')):
-        if not os.path.isfile(kandidat):
-            continue
-        try:
-            d = json.load(open(kandidat, encoding='utf-8'))
-        except Exception:
-            continue
-        if 'sidik_asli' in d:
-            for nama, h in d['sidik_asli'].items():
-                if len(h) == 64:
-                    tabel.setdefault(h, {'asal': 'asli', 'contoh': nama})
-            break
-        for b in d.get('baris', []):
-            h = b.get('sha256_asli', '')
-            if h and len(h) == 64:
-                tabel.setdefault(h, {'asal': 'asli', 'contoh': b['berkas']})
     return tabel
 
 
@@ -129,7 +107,8 @@ def main():
         print(f'{"PASS" if ok else "FAIL"}  {f:34s} {h[:12]} {ukuran:>8} B  {asal}'
               + ('' if ok else '  ← ' + '; '.join(alasan)))
 
-    # mode live: buktikan yang DISAJIKAN juga milik kita
+    # mode live: buktikan yang DISAJIKAN juga milik kita — ini butir gerbang, bukan sekadar catatan
+    live_ringkas = None
     if live:
         try:
             import urllib.request
@@ -142,16 +121,27 @@ def main():
                     continue
                 hl = hashlib.sha256(data).hexdigest()
                 info = sidik.get(hl)
-                b['live'] = {'sha256': hl[:16], 'asal': info['asal'] if info else 'tak dikenal'}
+                asal_live = info['asal'] if info else 'tak dikenal'
                 sama = hl == sha(os.path.join(akar, b['berkas']))
-                print(f'{"PASS" if sama and b["lulus"] else "FAIL"}  live {b["berkas"]:28s} {hl[:12]} '
-                      f'{b["live"]["asal"]}' + ('' if sama else '  ≠ berkas di disk'))
-                if not sama or b['live']['asal'] != 'kita':
+                b['live'] = {'sha256': hl[:16], 'asal': asal_live, 'sama_dengan_disk': sama}
+                # DUA hal berbeda, jangan dicampur:
+                #   (a) produksi menyajikan aset MILIK KITA  → butir gerbang
+                #   (b) isi produksi SAMA dengan berkas lokal → informasi pemutakhiran paket
+                status = 'PASS' if asal_live == 'kita' else 'FAIL'
+                if asal_live != 'kita':
                     gagal += 1
+                print(f'{status}  live {b["berkas"]:28s} {hl[:12]} {asal_live}'
+                      + ('' if sama else '  (isi ≠ berkas lokal: repo belum memuat paket aset)'))
+            live_ok = sum(1 for b in hasil['berkas'] if b.get('live', {}).get('asal') == 'kita')
+            live_ringkas = {'lulus': live_ok, 'total': len(hasil['berkas'])}
+            hasil['live_ringkas'] = live_ringkas
         except Exception as e:  # noqa: BLE001
             print(f'WARN mode live dilewati: {e}')
 
-    hasil['ringkas'] = {'gagal': gagal, 'total': len(hasil['berkas'])}
+    hasil['ringkas'] = {'gagal': gagal, 'total': len(hasil['berkas']),
+                        'repo': {'lulus': sum(1 for b in hasil['berkas'] if b['lulus']),
+                                 'total': len(hasil['berkas'])},
+                        'produksi': live_ringkas}
     if json_out:
         os.makedirs(os.path.dirname(json_out), exist_ok=True)
         json.dump(hasil, open(json_out, 'w'), ensure_ascii=False, indent=1)
@@ -164,8 +154,12 @@ def main():
                   ensure_ascii=False, indent=1)
         print(f'\nlarangan ditulis: {tulis_larangan} ({len(peta)} sidik)')
 
-    print(f'\nGERBANG E ASET: {len(hasil["berkas"]) - gagal}/{len(hasil["berkas"])} lulus'
-          + (f' · {gagal} GAGAL' if gagal else ' · semua milik kita'))
+    repo_lulus = hasil['ringkas']['repo']['lulus']
+    total_berkas = len(hasil['berkas'])
+    print(f'\nGERBANG E ASET — repo     : {repo_lulus}/{total_berkas} lulus')
+    if live_ringkas:
+        print(f'GERBANG E ASET — produksi : {live_ringkas["lulus"]}/{live_ringkas["total"]} lulus')
+    print('PUTUSAN: ' + ('LULUS' if gagal == 0 else f'GAGAL ({gagal} butir)'))
     sys.exit(0 if gagal == 0 else 1)
 
 
