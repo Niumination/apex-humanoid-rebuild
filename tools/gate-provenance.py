@@ -30,8 +30,8 @@ import json
 import os
 import sys
 
-K = '/home/user/Kerja-Arena'
-P13 = f'{K}/verification/p13'
+K = os.environ.get('KERJA_ARENA', os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+P13 = os.environ.get('P13_DIR') or f'{K}/verification/p13'
 AKAR_BAWAAN = os.environ.get('AKAR_ASET', 'public/humanoid')
 MIN_BYTE = 1024
 
@@ -55,7 +55,27 @@ def tabel_sidik():
         if not os.path.isdir(d):
             continue
         for f in os.listdir(d):
+            if f.endswith('.sha256') or f.endswith('.md') or f.endswith('.json'):
+                continue
             tabel[sha(os.path.join(d, f))] = {'asal': tag, 'contoh': f}
+    # Cadangan: berkas asli tak ada di workspace; sidik penuh ada di p13/asli-sidik.json.
+    for kandidat in (os.path.join(P13, 'asli-sidik.json'),
+                     os.path.join(P13, '..', 'provenance.json')):
+        if not os.path.isfile(kandidat):
+            continue
+        try:
+            d = json.load(open(kandidat, encoding='utf-8'))
+        except Exception:
+            continue
+        if 'sidik_asli' in d:
+            for nama, h in d['sidik_asli'].items():
+                if len(h) == 64:
+                    tabel.setdefault(h, {'asal': 'asli', 'contoh': nama})
+            break
+        for b in d.get('baris', []):
+            h = b.get('sha256_asli', '')
+            if h and len(h) == 64:
+                tabel.setdefault(h, {'asal': 'asli', 'contoh': b['berkas']})
     return tabel
 
 
