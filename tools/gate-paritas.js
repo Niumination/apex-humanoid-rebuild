@@ -53,14 +53,14 @@ const JSON_OUT = ARG.includes('--json') ? ARG[ARG.indexOf('--json') + 1] : null
 const MIRA = process.env.MIRA || 'http://127.0.0.1:8804/'
 const APEX = process.env.APEX || 'http://127.0.0.1:8805/'
 // JANGKAR: kueri yang memaku waktu adegan. MIRA punya `?t=<detik>` (idle penuh ±11,5 s);
-// APEX memakai `?auto=1` (deterministik setelah 9 s: Δ cakupan antar run 0,0000).
+// APEX memakai `?t=9` (jangkar fase; Δ cakupan antar run 0,0048). Tanpa `?t=` pakai `?auto=1`.
 const JANGKAR = {
   MIRA: process.env.MIRA_JANGKAR || '?t=11.5',
-  APEX: process.env.APEX_JANGKAR || '?auto=1',
+  APEX: process.env.APEX_JANGKAR || '?t=9',
 }
 const TUNGGU_MS = Number(process.env.TUNGGU_MS || 9000)
 const SHOTS = process.env.SHOTS_DIR || '/tmp/gateparitas'
-const KAL = '/home/user/Kerja-Arena/verification/kalibrasi'
+const KAL = process.env.KAL_DIR || '/home/user/Kerja-Arena/verification/kalibrasi'
 const ARGS = ['--no-sandbox', '--enable-unsafe-swiftshader', '--use-gl=angle',
   '--use-angle=swiftshader', '--disable-dev-shm-usage', '--mute-audio']
 const SEMUA_VP = [

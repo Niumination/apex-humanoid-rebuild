@@ -30,7 +30,7 @@ import json
 import os
 import sys
 
-K = '/home/user/Kerja-Arena'
+K = os.environ.get('KERJA_ARENA', '/home/user/Kerja-Arena')
 P13 = f'{K}/verification/p13'
 AKAR_BAWAAN = os.environ.get('AKAR_ASET', 'public/humanoid')
 MIN_BYTE = 1024
@@ -55,7 +55,29 @@ def tabel_sidik():
         if not os.path.isdir(d):
             continue
         for f in os.listdir(d):
+            if f.endswith('.sha256'):
+                continue
             tabel[sha(os.path.join(d, f))] = {'asal': tag, 'contoh': f}
+    # Cadangan: berkas asli tak ada lagi di workspace; sidiknya tersimpan di provenance.json.
+    # Tanpa ini tabel hanya memuat 'baru' dan gerbang melaporkan FATAL yang menyesatkan.
+    # Cadangan 1: sidik asli penuh (hash 64 hex) — verification/p13/asli-sidik.json
+    for kandidat in (os.path.join(P13, 'asli-sidik.json'),
+                     os.path.join(P13, '..', 'provenance.json')):
+        if not os.path.isfile(kandidat):
+            continue
+        try:
+            d = json.load(open(kandidat, encoding='utf-8'))
+        except Exception:
+            continue
+        if 'sidik_asli' in d:
+            for nama, h in d['sidik_asli'].items():
+                if len(h) == 64:
+                    tabel.setdefault(h, {'asal': 'asli', 'contoh': nama})
+            break
+        for b in d.get('baris', []):
+            h = b.get('sha256_asli', '')
+            if h and len(h) == 64:
+                tabel.setdefault(h, {'asal': 'asli', 'contoh': b['berkas']})
     return tabel
 
 

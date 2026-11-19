@@ -25,7 +25,7 @@ const ARG = process.argv.slice(2)
 const JSON_OUT = ARG.includes('--json') ? ARG[ARG.indexOf('--json') + 1] : null
 const MIRA = process.env.MIRA || 'http://127.0.0.1:8804/'
 const APEX = process.env.APEX || 'http://127.0.0.1:8805/'
-const ROOT = '/home/user'
+const ROOT = process.env.REBUILD_ROOT || '/home/user'
 const APPS = [
   { nama: 'MIRA', base: MIRA, dir: `${ROOT}/mira-humanoid-rebuild/public/humanoid`,
     plate: ['mira-idle-v1.webp', 'mira-hair-v1.webp'] },

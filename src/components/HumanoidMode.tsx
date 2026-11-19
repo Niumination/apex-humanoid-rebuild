@@ -135,6 +135,13 @@ export function HumanoidMode({ state, onExit }: { state: string; onExit: () => v
     let aliveToBlob = true
     const reduce = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
     const skipFlag = !!(window as any).__HUM_SKIP_ASSEMBLY
+    // P15-B: `?t=<detik>` memaku waktu adegan (jangkar gerbang), sama seperti MIRA.
+    // Hook `__HUM_ASM_*` hanya bisa dipasang lewat addInitScript, sedangkan gerbang menembak URL —
+    // jadi jangkar harus bisa lewat URL. Tanpa `?t=`, perilaku tetap persis seperti sebelumnya.
+    const qT = typeof window !== 'undefined'
+      ? new URLSearchParams(window.location.search).get('t')
+      : null
+    const tPin = qT !== null && Number.isFinite(Number(qT)) ? Number(qT) : null
     const asmEl = (window as any).__HUM_ASM_EL as number | undefined
     const asmOff = (window as any).__HUM_ASM_OFF as number | undefined
 
@@ -214,7 +221,12 @@ export function HumanoidMode({ state, onExit }: { state: string; onExit: () => v
       if (!reduce) drawEdgeParticles(ge, C, C, dt, fade.to, energy, 1, edgeParticles)
     }
 
-    if (reduce || skipFlag) {
+    // P15-B: `?t=` melewati animasi kelahiran (adegan langsung dianggap "sudah lahir"). Tanpa ini
+    // `?t=9` hanya memajukan jam birth, sementara semantik "selesai" masih menunggu 7,4 s dinding.
+    // Jam steady dikunci `tPin` + 0,35 s: pada `?t=9` drawSteady harus melihat t > TIMELINE.total (7,4)
+    // agar jalur "sudah lahir" yang dipakai; angka 0,35 s berasal dari umpan silang state pertama.
+    const jamSteady = (nowMs: number) => (tPin !== null ? tPin + 0.35 : nowMs / 1000)
+    if (reduce || skipFlag || tPin !== null) {
       progressRef.current = 1
       setBirthText('')            // bundle: J("") → readout disembunyikan
       // bundle: Ye = min(.05, (fe-ke)/1e3) — dt nyata, termasuk jalur reduced/skip
@@ -229,7 +241,8 @@ export function HumanoidMode({ state, onExit }: { state: string; onExit: () => v
       return () => cancelAnimationFrame(raf)
     }
 
-    const t0 = performance.now() - (asmOff ? asmOff * 1000 : 0)
+    // dengan `?t=`: mulai dari 0 namun waktu adegan dihitung dari tPin (adegan langsung "sudah lahir")
+    const t0 = performance.now() - ((asmOff ? asmOff : (tPin ?? 0)) * 1000)
     let raf = 0
     let done = false
     let last = performance.now()
@@ -247,7 +260,7 @@ export function HumanoidMode({ state, onExit }: { state: string; onExit: () => v
         fadeFrom = fade.to
       }
       if (done) {
-        drawSteady(frozenTime() ?? nowMs / 1000, dt)
+        drawSteady(frozenTime() ?? jamSteady(now ?? performance.now()), dt)
         raf = requestAnimationFrame(frame)
         return
       }
