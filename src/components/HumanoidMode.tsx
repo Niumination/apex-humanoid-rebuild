@@ -226,7 +226,11 @@ export function HumanoidMode({ state, onExit }: { state: string; onExit: () => v
     // Jam steady dikunci `tPin` + 0,35 s: pada `?t=9` drawSteady harus melihat t > TIMELINE.total (7,4)
     // agar jalur "sudah lahir" yang dipakai; angka 0,35 s berasal dari umpan silang state pertama.
     const jamSteady = (nowMs: number) => (tPin !== null ? tPin + 0.35 : nowMs / 1000)
-    if (reduce || skipFlag || tPin !== null) {
+    // P15-B3: `?t=` hanya melewati kelahiran bila sudah MELEWATI total timeline (7,4 s). Untuk `?t=` < 7,4
+    // justru harus menampilkan bingkai kelahiran pada detik itu (beku) — kalau tidak, seluruh rentang
+    // kelahiran tampak sama dan gerbang fase tidak bisa membedakan apa pun (terukur: rentang 0,0021).
+    const lewatiKelahiran = reduce || skipFlag || (tPin !== null && tPin >= TIMELINE.total)
+    if (lewatiKelahiran) {
       progressRef.current = 1
       setBirthText('')            // bundle: J("") → readout disembunyikan
       // bundle: Ye = min(.05, (fe-ke)/1e3) — dt nyata, termasuk jalur reduced/skip
@@ -248,9 +252,14 @@ export function HumanoidMode({ state, onExit }: { state: string; onExit: () => v
     let last = performance.now()
     const frame = (now?: number) => {
       const nowMs = now ?? performance.now()
-      const dt = Math.min(0.05, Math.max(0, (nowMs - last) / 1000))
+      const dtMentah = Math.min(0.05, Math.max(0, (nowMs - last) / 1000))
       last = nowMs
-      const t = asmEl != null ? asmEl : (performance.now() - t0) / 1000
+      // dibekukan oleh `?t=` → tidak ada kemajuan waktu maupun partikel
+      const dt = tPin !== null ? 0 : dtMentah
+      // P15-B2: `?t=` membekukan SELURUH timeline, bukan hanya steady-state. Tanpa ini, `?t=3`
+      // (fase kelahiran) tetap berjalan mengikuti jam dinding → dua tangkapan berbeda (MAE diri 11,88).
+      // Dengan beku, `?t=<detik>` = satu bingkai kelahiran yang bisa diulang persis.
+      const t = asmEl != null ? asmEl : (tPin !== null ? tPin : (performance.now() - t0) / 1000)
       if (!done && t >= TIMELINE.total) {
         done = true
         progressRef.current = 1
@@ -268,7 +277,9 @@ export function HumanoidMode({ state, onExit }: { state: string; onExit: () => v
       ge.clearRect(0, 0, C, C)
       const s = renderBirthFrame(
         ge, C, C, t, assemblyRef.current!, plateIdle, scratch, dt, edgeParticles,
-        nowMs / 1000
+        // P15-B4: argumen waktu untuk butiran/twinkle harus ikut dibekukan saat `?t=`. Sebelum ini,
+        // `?t=5` masih menerima jam dinding → dua tangkapan bisa berbeda (MAE diri terukur 11,64).
+        tPin !== null ? tPin : nowMs / 1000
       )
       progressRef.current = s
       // bundle tetap menggambar tiap frame walau __HUM_ASM_EL membekukan waktu
