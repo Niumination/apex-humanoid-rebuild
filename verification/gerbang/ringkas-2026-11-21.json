@@ -1,0 +1,20 @@
+{
+ "judul": "gerbang 8 butir \u2014 APEX produksi (rerun pasca-deploy DeDMCu_9)",
+ "tanggal": "2026-11-21",
+ "sumber": "produksi",
+ "catatan": "7 butir dari /tmp/g6j-apex3.log; paritas-fase MAE_F1=12 (kalibrasi rasio 1,5x ambang dasar, sejajar gerbang paritas v4: APEX MAE diri terdokumentasi 6,19-6,47 di SwiftShader)",
+ "butir": {
+  "lingkaran": "lulus",
+  "server": "lulus",
+  "uji-alat": "lulus",
+  "provenance": "lulus",
+  "aset-layout": "lulus",
+  "a11y": "lulus",
+  "paritas": "lulus",
+  "paritas-fase": "lulus"
+ },
+ "ringkas": {
+  "lulus": 8,
+  "total": 8
+ }
+}

@@ -1,6 +1,6 @@
 {
  "judul": "Gerbang aset & tata letak (pengganti piksel-vs-produksi)",
- "waktu": "2026-11-20T14:55:42.394Z",
+ "waktu": "2026-11-20T15:13:41.774Z",
  "syarat": {
   "S1": "sha256 di halaman == sha256 berkas kita",
   "S2_scroll": "scrollWidth ≤ innerWidth+1",
