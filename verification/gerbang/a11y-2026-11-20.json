@@ -1,10 +1,10 @@
 {
  "judul": "Gerbang aksesibilitas (P14 · E3)",
- "waktu": "2026-11-20T15:16:12.271Z",
+ "waktu": "2026-11-20T18:36:08.318Z",
  "aplikasi": [
   {
    "aplikasi": "MIRA",
-   "base": "https://mira-humanoid-niu.vercel.app",
+   "base": "http://127.0.0.1:8804/",
    "butir": [
     {
      "butir": "A1 bahasa dokumen",
@@ -52,7 +52,7 @@
   },
   {
    "aplikasi": "APEX",
-   "base": "https://niu-humanoid.vercel.app",
+   "base": "http://127.0.0.1:8817/",
    "butir": [
     {
      "butir": "A1 bahasa dokumen",

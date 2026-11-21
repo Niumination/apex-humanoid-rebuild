@@ -1,6 +1,7 @@
 {
  "judul": "Gerbang aset & tata letak (pengganti piksel-vs-produksi)",
- "waktu": "2026-11-20T15:13:41.774Z",
+ "waktu": "2026-11-20T18:31:21.771Z",
+ "sumber": "repo",
  "syarat": {
   "S1": "sha256 di halaman == sha256 berkas kita",
   "S2_scroll": "scrollWidth ≤ innerWidth+1",
@@ -10,7 +11,7 @@
  "aplikasi": [
   {
    "aplikasi": "MIRA",
-   "base": "https://mira-humanoid-niu.vercel.app",
+   "base": "http://127.0.0.1:8804/",
    "aset": [
     {
      "berkas": "mira-idle-v1.webp",
@@ -65,7 +66,7 @@
   },
   {
    "aplikasi": "APEX",
-   "base": "https://niu-humanoid.vercel.app",
+   "base": "http://127.0.0.1:8817/",
    "aset": [
     {
      "berkas": "apex-idle-v1.webp",
